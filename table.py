@@ -13,7 +13,6 @@ class Main:
         self.leaguetitle = ""
         self.year = ""
  
-    # Pretty-print the title of the league.
     def setLeagueTitle(self):
 
         if str(self.league) == 'premier-league':
@@ -34,51 +33,6 @@ class Main:
             self.leaguetitle = 'Champions League'
 
 
-    # Update information for each team. Some magic numbers for indexing the html to find correct information.
-    def updateTableInfo(self, rest, teamlist, team, form, i):
-
-        jump = 11
-        posindex = 0
-        playedindex = 2
-        winindex = 3
-        drawindex = 4
-        lossindex = 5
-        goalscoredindex = 6
-        goalsconcededindex = 7
-        gdindex = 8
-        pointsindex = 9
-
-        teamlist.append(team[i].get("data-long-name"))
-        teamname = teamlist[i]
-        
-        pos = rest[posindex].text
-        played = rest[playedindex].text
-        win = rest[winindex].text
-        draw = rest[drawindex].text
-        lose = rest[lossindex].text
-        goalscored = rest[goalscoredindex].text
-        goalsconceded = rest[goalsconcededindex].text
-        gd = rest[gdindex].text
-        points = rest[pointsindex].text
-        posindex += jump
-        playedindex += jump
-        winindex += jump
-        drawindex += jump
-        lossindex += jump
-        goalscoredindex += jump
-
-        goalsconcededindex += jump
-        gdindex +=  jump
-        pointsindex += jump
-
-        # If the list form is empty, form do not exist, so set a list of 0, 0, 0 as the recent form
-        try:
-            newform = self.checkForm(form[i], i)
-        except IndexError:
-            newform = [0, 0, 0]
-
-        return [pos, teamname, played, win, draw, lose, goalscored, goalsconceded, gd, points, newform]
-
     def scrape(self):
 
         if len(sys.argv) > 1:
@@ -87,6 +41,7 @@ class Main:
             self.year = "20" + str((str(self.year)[2]) + str(self.year)[3])
             secondyear = int(str(self.year)[2] + str(self.year)[3]) + 1
             print(secondyear)
+
 
         league = input("Hvilken liga vil du se tabell for?\n")
         self.league = self.determineLeague(league)
@@ -97,9 +52,6 @@ class Main:
         
         tables = page_soup.findAll("table", {"class":{"standing-table__table"}})
 
-        # Key information on the bottom 
-        key_info = page_soup.find("div", {"class":"standing-table__supplementary"})
-
         if not len(tables):
             print("Table not found")
             return
@@ -107,16 +59,19 @@ class Main:
         self.setLeagueTitle()
 
         tabledirectory = {}
+
         tablenum = 0
 
         for x in range(0, len(tables)):
             tabledirectory["t{0}".format(x)]=PrettyTable()
 
+        # Key information on the bottom 
+        key_info = page_soup.find("div", {"class":"standing-table__supplementary"})
 
-        # Loop through all the tables for for example champions league.
         for table in tables:
 
             t = tabledirectory["t" + str(tablenum)]
+
             t.field_names = ['#', 'Team', 'P', 'W', 'D', 'L', 'F', 'A', 'GD', 'Pts', 'Form[W,D,L]']
             tabletitle = table.findAll("caption", {"class":"standing-table__caption"})
             t.title = tabletitle[0].text.strip()
@@ -126,12 +81,49 @@ class Main:
             form = table.findAll("div", {"class":"standing-table__form"})
 
 
-            # Loop through all the teams, and update their info
+            jump = 11
+            posindex = 0
+            playedindex = 2
+            winindex = 3
+            drawindex = 4
+            lossindex = 5
+            goalscoredindex = 6
+            goalsconcededindex = 7
+            gdindex = 8
+            pointsindex = 9
+
             for i in range(0, len(team)):
+                teamlist.append(team[i].get("data-long-name"))
+                teamname = teamlist[i]
+                
+                pos = rest[posindex].text
+                played = rest[playedindex].text
+                win = rest[winindex].text
+                draw = rest[drawindex].text
+                lose = rest[lossindex].text
+                goalscored = rest[goalscoredindex].text
+                goalsconceded = rest[goalsconcededindex].text
+                gd = rest[gdindex].text
+                points = rest[pointsindex].text
+                posindex += jump
+                playedindex += jump
+                winindex += jump
+                drawindex += jump
+                lossindex += jump
+                goalscoredindex += jump
 
-                tableinfo = self.updateTableInfo(rest, teamlist, team, form, i)
-                t.add_row(tableinfo)
+                goalsconcededindex += jump
+                gdindex +=  jump
+                pointsindex += jump
+                
+                # If the list is empty, there is no information on form. 
+                # This happens on table for previous years
+                try:
+                    newform = self.checkForm(form[i], i)
+                except IndexError:
+                    newform = [0, 0, 0]
 
+                t.add_row([pos, teamname, played, win, draw, lose, goalscored, goalsconceded, gd, points, newform])
 
             print(t)
             tablenum += 1
